@@ -1,4 +1,4 @@
-module github.com/eclipse/paho.mqtt.golang
+module github.com/leobreaking/paho.mqtt.golang.proxy
 
 go 1.20
 
