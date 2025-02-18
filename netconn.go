@@ -26,7 +26,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"golang.org/x/net/proxy"
@@ -38,7 +37,7 @@ import (
 
 // openConnection opens a network connection using the protocol indicated in the URL.
 // Does not carry out any MQTT specific handshakes.
-func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration, headers http.Header, websocketOptions *WebsocketOptions, dialer *net.Dialer) (net.Conn, error) {
+func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration, headers http.Header, websocketOptions *WebsocketOptions, dialer *net.Dialer, proxyAddr string) (net.Conn, error) {
 	switch uri.Scheme {
 	case "ws":
 		dialURI := *uri // #623 - Gorilla Websockets does not accept URL's where uri.User != nil
@@ -51,19 +50,15 @@ func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration, heade
 		conn, err := NewWebsocket(dialURI.String(), tlsc, timeout, headers, websocketOptions)
 		return conn, err
 	case "mqtt", "tcp":
-		//allProxy := os.Getenv("all_proxy")
-		//if len(allProxy) == 0 {
-		//	conn, err := dialer.Dial("tcp", uri.Host)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	return conn, nil
-		//}
-		//proxyDialer := proxy.FromEnvironment()
+		if len(proxyAddr) == 0 {
+			conn, err := dialer.Dial("tcp", uri.Host)
+			if err != nil {
+				return nil, err
+			}
+			return conn, nil
+		}
 
-		// todo
-		proxyURL := "socks5://127.0.0.1:8889" // 替换为您的代理地址
-		urlParsed, err := url.Parse(proxyURL)
+		urlParsed, err := url.Parse(proxyAddr)
 		if err != nil {
 			fmt.Println("解析代理 URL 失败:", err)
 			return nil, err
@@ -97,16 +92,25 @@ func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration, heade
 		}
 		return conn, nil
 	case "ssl", "tls", "mqtts", "mqtt+ssl", "tcps":
-		allProxy := os.Getenv("all_proxy")
-		if len(allProxy) == 0 {
+		if len(proxyAddr) == 0 {
 			conn, err := tls.DialWithDialer(dialer, "tcp", uri.Host, tlsc)
 			if err != nil {
 				return nil, err
 			}
 			return conn, nil
 		}
-		proxyDialer := proxy.FromEnvironment()
-		conn, err := proxyDialer.Dial("tcp", uri.Host)
+		urlParsed, err := url.Parse(proxyAddr)
+		if err != nil {
+			fmt.Println("解析代理 URL 失败:", err)
+			return nil, err
+		}
+		dialerProxy, err := proxy.FromURL(urlParsed, proxy.Direct)
+		if err != nil {
+			fmt.Println("创建 SOCKS5 dialer 失败:", err)
+			return nil, err
+		}
+
+		conn, err := dialerProxy.Dial("tcp", uri.Host)
 		if err != nil {
 			return nil, err
 		}

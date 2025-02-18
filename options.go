@@ -105,17 +105,19 @@ type ClientOptions struct {
 	Dialer                  *net.Dialer
 	CustomOpenConnectionFn  OpenConnectionFunc
 	AutoAckDisabled         bool
+	ProxyAddr               string
 }
 
 // NewClientOptions will create a new ClientClientOptions type with some
 // default values.
-//   Port: 1883
-//   CleanSession: True
-//   Order: True (note: it is recommended that this be set to FALSE unless order is important)
-//   KeepAlive: 30 (seconds)
-//   ConnectTimeout: 30 (seconds)
-//   MaxReconnectInterval 10 (minutes)
-//   AutoReconnect: True
+//
+//	Port: 1883
+//	CleanSession: True
+//	Order: True (note: it is recommended that this be set to FALSE unless order is important)
+//	KeepAlive: 30 (seconds)
+//	ConnectTimeout: 30 (seconds)
+//	MaxReconnectInterval 10 (minutes)
+//	AutoReconnect: True
 func NewClientOptions() *ClientOptions {
 	o := &ClientOptions{
 		Servers:                 nil,
@@ -174,6 +176,11 @@ func (o *ClientOptions) AddBroker(server string) *ClientOptions {
 		return o
 	}
 	o.Servers = append(o.Servers, brokerURI)
+	return o
+}
+
+func (o *ClientOptions) SetProxyAddr(proxy string) *ClientOptions {
+	o.ProxyAddr = proxy
 	return o
 }
 
@@ -450,6 +457,7 @@ func (o *ClientOptions) SetCustomOpenConnectionFn(customOpenConnectionFn OpenCon
 }
 
 // SetAutoAckDisabled enables or disables the Automated Acking of Messages received by the handler.
+//
 //	By default it is set to false. Setting it to true will disable the auto-ack globally.
 func (o *ClientOptions) SetAutoAckDisabled(autoAckDisabled bool) *ClientOptions {
 	o.AutoAckDisabled = autoAckDisabled
