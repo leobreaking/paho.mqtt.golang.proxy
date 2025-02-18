@@ -22,6 +22,7 @@ package mqtt
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -50,21 +51,35 @@ func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration, heade
 		conn, err := NewWebsocket(dialURI.String(), tlsc, timeout, headers, websocketOptions)
 		return conn, err
 	case "mqtt", "tcp":
-		allProxy := os.Getenv("all_proxy")
-		if len(allProxy) == 0 {
-			conn, err := dialer.Dial("tcp", uri.Host)
-			if err != nil {
-				return nil, err
-			}
-			return conn, nil
-		}
-		proxyDialer := proxy.FromEnvironment()
+		//allProxy := os.Getenv("all_proxy")
+		//if len(allProxy) == 0 {
+		//	conn, err := dialer.Dial("tcp", uri.Host)
+		//	if err != nil {
+		//		return nil, err
+		//	}
+		//	return conn, nil
+		//}
+		//proxyDialer := proxy.FromEnvironment()
 
-		conn, err := proxyDialer.Dial("tcp", uri.Host)
+		// todo
+		proxyURL := "socks5://127.0.0.1:8889" // 替换为您的代理地址
+		urlParsed, err := url.Parse(proxyURL)
+		if err != nil {
+			fmt.Println("解析代理 URL 失败:", err)
+			return nil, err
+		}
+		dialerProxy, err := proxy.FromURL(urlParsed, proxy.Direct)
+		if err != nil {
+			fmt.Println("创建 SOCKS5 dialer 失败:", err)
+			return nil, err
+		}
+
+		conn, err := dialerProxy.Dial("tcp", uri.Host)
 		if err != nil {
 			return nil, err
 		}
 		return conn, nil
+
 	case "unix":
 		var conn net.Conn
 		var err error
