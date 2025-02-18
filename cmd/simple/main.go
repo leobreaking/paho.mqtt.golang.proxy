@@ -24,7 +24,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/leobreaking/paho.mqtt.golang.proxy"
 )
 
 var f mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
