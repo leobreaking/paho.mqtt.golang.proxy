@@ -114,6 +114,8 @@ type Client interface {
 	// OptionsReader returns a ClientOptionsReader which is a copy of the clientoptions
 	// in use by the client.
 	OptionsReader() ClientOptionsReader
+
+	WriteByte(data []byte) Token
 }
 
 // client implements the Client interface
@@ -1238,4 +1240,15 @@ func (c *client) persistInbound(m packets.ControlPacket) {
 // pingRespReceived will be called by the network routines when a ping response is received
 func (c *client) pingRespReceived() {
 	atomic.StoreInt32(&c.pingOutstanding, 0)
+}
+
+func (c *client) WriteByte(data []byte) Token {
+	token := newToken(packets.Unsubscribe).(*UnsubscribeToken)
+	wLen, err := c.conn.Write(data)
+	if err != nil {
+		token.setError(errors.New(fmt.Sprintf("write byte err:%v", err)))
+		return token
+	}
+	fmt.Printf("write byte len: %d", wLen)
+	return token
 }
